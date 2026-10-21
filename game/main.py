@@ -1,6 +1,7 @@
 """Главный модуль: запуск игры"""
 
 import pygame
+from game.ball import Ball
 
 WIDTH = 800
 HEIGHT = 600
@@ -15,24 +16,16 @@ def main() -> None:
     pygame.display.set_caption("Asteroids")
     clock = pygame.time.Clock()
 
-    x = 400.0
-    y = 300.0
-    speed_x = 3.0
-    speed_y = 2.0
-    radius = 20
+    ball = Ball(pygame.Vector2(400, 300), pygame.Vector2(3, 2), 20)
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        x += speed_x
-        y += speed_y
-        if x - radius < 0 or x + radius > WIDTH:
-            speed_x = -speed_x
-        if y - radius < 0 or y + radius > HEIGHT:
-            speed_y = -speed_y
+        ball.move()
+        ball.bounce_walls(WIDTH, HEIGHT)
         screen.fill(BACKGROUND)
-        pygame.draw.circle(screen, (255, 255, 255), (x, y), radius)
+        ball.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
