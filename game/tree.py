@@ -96,3 +96,10 @@ class QuadTree:
             if child.remove(ball):
                 return True
         return False
+
+    def boundaries(self) -> list[Rect]:
+        """Возвращает границы этого узла и всех его потомков."""
+        result = [self.boundary]
+        for child in self.children:
+            result.extend(child.boundaries())
+        return result
