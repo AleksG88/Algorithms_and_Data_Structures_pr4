@@ -10,6 +10,8 @@ THRUST_POWER = 0.15
 FRICTION = 0.99
 BRAKE = 0.9
 FIRE_DELAY = 20
+SHIP_LIVES = 3
+INVULNERABLE_TIME = 300
 SHIP_COLOR = (255, 0, 0)
 
 
@@ -22,6 +24,18 @@ class Ship:
         self.velocity = pygame.Vector2(0, 0)
         self.angle = -90.0
         self.cooldown = 0
+        self.lives = SHIP_LIVES
+        self.shield = INVULNERABLE_TIME
+
+    @property
+    def is_invulnerable(self) -> bool:
+        """True, пока после появления корабля не прошло INVULNERABLE_TIME кадров."""
+        return self.shield > 0
+
+    @property
+    def radius(self) -> float:
+        """Радиус круга, которым корабль считается при столкновениях с астероидами."""
+        return SHIP_SIZE * 0.6
 
     @property
     def direction(self) -> pygame.Vector2:
@@ -55,6 +69,8 @@ class Ship:
         self.position.y %= height
         if self.cooldown > 0:
             self.cooldown -= 1
+        if self.shield > 0:
+            self.shield -= 1
 
     def points(self) -> list[pygame.Vector2]:
         """Три вершины треугольника: нос и два задних угла."""
@@ -64,5 +80,7 @@ class Ship:
         return [nose, left, right]
 
     def draw(self, screen: pygame.Surface) -> None:
-        """Рисует корабль на экране screen."""
+        """Рисует корабль на экране screen. Неуязвимый корабль мигает."""
+        if self.is_invulnerable and self.shield // 10 % 2 == 1:
+            return
         pygame.draw.polygon(screen, SHIP_COLOR, self.points())
