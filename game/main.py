@@ -5,6 +5,7 @@ import random
 import pygame
 
 from game.ball import Ball
+from game.tree import QuadTree, Rect
 
 WIDTH = 800
 HEIGHT = 600
@@ -44,6 +45,16 @@ def main() -> None:
                 running = False
         for ball in balls:
             ball.move()
+        tree = QuadTree(Rect(0, 0, WIDTH, HEIGHT))
+        for ball in balls:
+            tree.insert(ball)
+        for ball in balls:
+            reach = ball.radius + MAX_RADIUS
+            area = Rect(ball.position.x - reach, ball.position.y - reach, 2 * reach, 2 * reach)
+            for other in tree.query(area):
+                if other is not ball:
+                    ball.collide(other)
+        for ball in balls:
             ball.bounce_walls(WIDTH, HEIGHT)
         screen.fill(BACKGROUND)
         for ball in balls:

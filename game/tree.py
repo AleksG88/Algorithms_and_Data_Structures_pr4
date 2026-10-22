@@ -72,3 +72,27 @@ class QuadTree:
             if child.insert(ball):
                 return True
         return False
+
+    def query(self, area: Rect) -> list[Ball]:
+        """Возвращает все шары, центры которых лежат в прямоугольнике area."""
+        found: list[Ball] = []
+        if not self.boundary.intersects(area):
+            return found
+        for ball in self.balls:
+            if area.contains(ball.position.x, ball.position.y):
+                found.append(ball)
+        for child in self.children:
+            found.extend(child.query(area))
+        return found
+
+    def remove(self, ball: Ball) -> bool:
+        """Удаляет шар из дерева. Возвращает True, если шар был найден и удалён."""
+        if not self.boundary.contains(ball.position.x, ball.position.y):
+            return False
+        if ball in self.balls:
+            self.balls.remove(ball)
+            return True
+        for child in self.children:
+            if child.remove(ball):
+                return True
+        return False
