@@ -2,11 +2,15 @@
 
 import pygame
 
-SHIP_SIZE = 15
-TURN_SPEED = 4
+from game.bullet import Bullet
+
+SHIP_SIZE = 30
+TURN_SPEED = 2
 THRUST_POWER = 0.15
 FRICTION = 0.99
-SHIP_COLOR = (80, 200, 255)
+BRAKE = 0.9
+FIRE_DELAY = 20
+SHIP_COLOR = (255, 0, 0)
 
 
 class Ship:
@@ -17,6 +21,7 @@ class Ship:
         self.position = position
         self.velocity = pygame.Vector2(0, 0)
         self.angle = -90.0
+        self.cooldown = 0
 
     @property
     def direction(self) -> pygame.Vector2:
@@ -31,12 +36,25 @@ class Ship:
         """Разгоняет корабль в сторону носа."""
         self.velocity += self.direction * THRUST_POWER
 
+    def brake(self) -> None:
+        """Быстро гасит скорость корабля."""
+        self.velocity *= BRAKE
+
+    def shoot(self) -> Bullet | None:
+        """Стреляет из носа корабля. Возвращает новую пулю или None, если идёт перезарядка."""
+        if self.cooldown > 0:
+            return None
+        self.cooldown = FIRE_DELAY
+        return Bullet(self.points()[0], self.direction)
+
     def move(self, width: int, height: int) -> None:
         """Сдвигает корабль, гасит скорость трением и переносит через края поля."""
         self.position += self.velocity
         self.velocity *= FRICTION
         self.position.x %= width
         self.position.y %= height
+        if self.cooldown > 0:
+            self.cooldown -= 1
 
     def points(self) -> list[pygame.Vector2]:
         """Три вершины треугольника: нос и два задних угла."""
@@ -47,4 +65,4 @@ class Ship:
 
     def draw(self, screen: pygame.Surface) -> None:
         """Рисует корабль на экране screen."""
-        pygame.draw.polygon(screen, SHIP_COLOR, self.points(), 2)
+        pygame.draw.polygon(screen, SHIP_COLOR, self.points())

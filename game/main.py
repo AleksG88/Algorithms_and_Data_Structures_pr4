@@ -9,6 +9,7 @@ import random
 import pygame
 
 from game.ball import Ball
+from game.bullet import Bullet
 from game.settings import Settings, ask_settings
 from game.ship import Ship
 from game.tree import QuadTree, Rect
@@ -46,21 +47,39 @@ def handle_collisions(balls: list[Ball], tree: QuadTree, max_radius: float) -> N
                 ball.collide(other)
 
 
+def handle_hits(bullets: list[Bullet], balls: list[Ball], tree: QuadTree, max_radius: float) -> None:
+    """Ищет через квадродерево астероиды, в которые попали пули, и уничтожает их."""
+    for bullet in bullets:
+        area = Rect(bullet.position.x - max_radius, bullet.position.y - max_radius, 2 * max_radius, 2 * max_radius)
+        for ball in tree.query(area):
+            if bullet.position.distance_to(ball.position) <= ball.radius:
+                tree.remove(ball)
+                balls.remove(ball)
+                bullet.life = 0
+                break
+
+
 def draw_tree(screen: pygame.Surface, tree: QuadTree) -> None:
     """Рисует границы всех узлов квадродерева."""
     for rect in tree.boundaries():
         pygame.draw.rect(screen, TREE_COLOR, (rect.x, rect.y, rect.width, rect.height), 1)
 
 
-def control_ship(ship: Ship) -> None:
-    """Поворачивает и разгоняет корабль по зажатым стрелкам."""
+def control_ship(ship: Ship, bullets: list[Bullet]) -> None:
+    """Управляет кораблём по зажатым клавишам: стрелки или WASD, пробел — огонь."""
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
+    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         ship.rotate(-1)
-    if keys[pygame.K_RIGHT]:
+    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         ship.rotate(1)
-    if keys[pygame.K_UP]:
+    if keys[pygame.K_UP] or keys[pygame.K_w]:
         ship.thrust()
+    if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        ship.brake()
+    if keys[pygame.K_SPACE]:
+        bullet = ship.shoot()
+        if bullet is not None:
+            bullets.append(bullet)
 
 
 def main() -> None:
@@ -77,6 +96,7 @@ def main() -> None:
     for _ in range(settings.ball_count):
         balls.append(create_random_ball(settings))
     ship = Ship(pygame.Vector2(settings.width / 2, settings.height / 2))
+    bullets: list[Bullet] = []
 
     show_tree = True
     running = True
@@ -86,11 +106,15 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_t:
                 show_tree = not show_tree
-        control_ship(ship)
+        control_ship(ship, bullets)
         ship.move(settings.width, settings.height)
+        for bullet in bullets:
+            bullet.move(settings.width, settings.height)
         for ball in balls:
             ball.move()
         tree = build_tree(balls, settings)
+        handle_hits(bullets, balls, tree, settings.max_radius)
+        bullets = [bullet for bullet in bullets if bullet.alive]
         handle_collisions(balls, tree, settings.max_radius)
         for ball in balls:
             ball.bounce_walls(settings.width, settings.height)
@@ -99,6 +123,8 @@ def main() -> None:
             draw_tree(screen, tree)
         for ball in balls:
             ball.draw(screen)
+        for bullet in bullets:
+            bullet.draw(screen)
         ship.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
