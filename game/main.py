@@ -5,41 +5,36 @@ import random
 import pygame
 
 from game.ball import Ball
+from game.settings import Settings, ask_settings
 from game.tree import QuadTree, Rect
 
-WIDTH = 800
-HEIGHT = 600
 BACKGROUND = (0, 0, 0)
 TREE_COLOR = (0, 110, 0)
 FPS = 60
-BALL_COUNT = 20
-MIN_RADIUS = 10
-MAX_RADIUS = 30
-MAX_SPEED = 4
 
 
-def create_random_ball() -> Ball:
-    """Создаёт шар со случайными размером, позицией и скоростью."""
-    radius = random.uniform(MIN_RADIUS, MAX_RADIUS)
-    position = pygame.Vector2(random.uniform(radius, WIDTH - radius),
-                              random.uniform(radius, HEIGHT - radius))
-    velocity = pygame.Vector2(random.uniform(-MAX_SPEED, MAX_SPEED),
-                              random.uniform(-MAX_SPEED, MAX_SPEED))
+def create_random_ball(settings: Settings) -> Ball:
+    """Создаёт шар со случайными размером, позицией, направлением и скоростью в пределах настроек."""
+    radius = random.uniform(settings.min_radius, settings.max_radius)
+    position = pygame.Vector2(random.uniform(radius, settings.width - radius),
+                              random.uniform(radius, settings.height - radius))
+    speed = random.uniform(settings.min_speed, settings.max_speed)
+    velocity = pygame.Vector2(speed, 0).rotate(random.uniform(0, 360))
     return Ball(position, velocity, radius)
 
 
-def build_tree(balls: list[Ball]) -> QuadTree:
+def build_tree(balls: list[Ball], settings: Settings) -> QuadTree:
     """Строит квадродерево по текущим позициям шаров."""
-    tree = QuadTree(Rect(0, 0, WIDTH, HEIGHT))
+    tree = QuadTree(Rect(0, 0, settings.width, settings.height))
     for ball in balls:
         tree.insert(ball)
     return tree
 
 
-def handle_collisions(balls: list[Ball], tree: QuadTree) -> None:
+def handle_collisions(balls: list[Ball], tree: QuadTree, max_radius: float) -> None:
     """Сталкивает каждый шар с соседями, найденными через квадродерево."""
     for ball in balls:
-        reach = ball.radius + MAX_RADIUS
+        reach = ball.radius + max_radius
         area = Rect(ball.position.x - reach, ball.position.y - reach, 2 * reach, 2 * reach)
         for other in tree.query(area):
             if other is not ball:
@@ -53,15 +48,18 @@ def draw_tree(screen: pygame.Surface, tree: QuadTree) -> None:
 
 
 def main() -> None:
-    """Открывает окно и крутит главный цикл игры."""
+    """Спрашивает настройки, открывает окно и крутит главный цикл игры."""
+    settings = ask_settings()
+    if settings is None:
+        return
     pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((settings.width, settings.height))
     pygame.display.set_caption("Asteroids")
     clock = pygame.time.Clock()
 
     balls = []
-    for _ in range(BALL_COUNT):
-        balls.append(create_random_ball())
+    for _ in range(settings.ball_count):
+        balls.append(create_random_ball(settings))
 
     show_tree = True
     running = True
@@ -73,10 +71,10 @@ def main() -> None:
                 show_tree = not show_tree
         for ball in balls:
             ball.move()
-        tree = build_tree(balls)
-        handle_collisions(balls, tree)
+        tree = build_tree(balls, settings)
+        handle_collisions(balls, tree, settings.max_radius)
         for ball in balls:
-            ball.bounce_walls(WIDTH, HEIGHT)
+            ball.bounce_walls(settings.width, settings.height)
         screen.fill(BACKGROUND)
         if show_tree:
             draw_tree(screen, tree)
