@@ -133,11 +133,16 @@ def new_round(settings: Settings) -> tuple[list[Ball], Ship, list[Bullet]]:
     return balls, ship, []
 
 
-def draw_hud(screen: pygame.Surface, font: pygame.font.Font, lives: int) -> None:
-    """Пишет число жизней в углу, а когда жизни кончились — надпись о проигрыше по центру."""
+def draw_hud(screen: pygame.Surface, font: pygame.font.Font, lives: int, asteroids_left: int) -> None:
+    """Пишет число жизней в углу, а в конце раунда — надпись о проигрыше или победе по центру."""
     screen.blit(font.render(f"Жизни: {max(lives, 0)}", True, TEXT_COLOR), (10, 10))
+    message = ""
     if lives <= 0:
-        text = font.render("ВЫ ПРОИГРАЛИ", True, TEXT_COLOR)
+        message = "ВЫ ПРОИГРАЛИ"
+    elif asteroids_left == 0:
+        message = "ВЫ ПОБЕДИЛИ"
+    if message:
+        text = font.render(message, True, TEXT_COLOR)
         screen.blit(text, text.get_rect(center=screen.get_rect().center))
 
 
@@ -154,7 +159,7 @@ def main() -> None:
 
     balls, ship, bullets = new_round(settings)
     tree = build_tree(balls, settings)
-    game_over_frames = 0
+    round_over_frames = 0
 
     show_tree = True
     running = True
@@ -164,18 +169,18 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_t:
                 show_tree = not show_tree
-        if ship.lives > 0:
+        if ship.lives > 0 and balls:
             tree = update_world(ship, balls, bullets, settings)
         else:
-            game_over_frames += 1
-            if game_over_frames >= RESTART_DELAY:
+            round_over_frames += 1
+            if round_over_frames >= RESTART_DELAY:
                 balls, ship, bullets = new_round(settings)
-                game_over_frames = 0
+                round_over_frames = 0
         screen.fill(BACKGROUND)
         if show_tree:
             draw_tree(screen, tree)
         draw_objects(screen, balls, bullets, ship)
-        draw_hud(screen, font, ship.lives)
+        draw_hud(screen, font, ship.lives, len(balls))
         pygame.display.flip()
         clock.tick(FPS)
 

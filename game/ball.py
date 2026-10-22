@@ -1,8 +1,18 @@
 """Модуль с классом шара-астероида."""
 
 import math
+import random
 
 import pygame
+
+ASTEROID_COLORS = [
+    (200, 200, 200),
+    (255, 180, 80),
+    (120, 200, 255),
+    (160, 255, 140),
+    (220, 150, 255),
+    (255, 230, 120),
+]
 
 
 class Ball:
@@ -13,6 +23,7 @@ class Ball:
         self.position = position
         self.velocity = velocity
         self.radius = radius
+        self.color = random.choice(ASTEROID_COLORS)
 
     @property
     def mass(self) -> float:
@@ -58,4 +69,4 @@ class Ball:
 
     def draw(self, screen: pygame.Surface) -> None:
         """Рисует шар на экране screen."""
-        pygame.draw.circle(screen, (255, 255, 255), self.position, self.radius)
+        pygame.draw.circle(screen, self.color, self.position, self.radius)
