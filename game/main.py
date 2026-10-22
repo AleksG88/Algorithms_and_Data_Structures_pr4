@@ -1,6 +1,5 @@
 """Главный модуль: запуск игры."""
 
-
 # Часть pygame написана на C, и pylint не видит её содержимое.
 # Это ложные срабатывания no-member, поэтому отключаем именно эту проверку в этом файле.
 # pylint: disable=no-member
@@ -11,6 +10,7 @@ import pygame
 
 from game.ball import Ball
 from game.settings import Settings, ask_settings
+from game.ship import Ship
 from game.tree import QuadTree, Rect
 
 BACKGROUND = (0, 0, 0)
@@ -52,6 +52,17 @@ def draw_tree(screen: pygame.Surface, tree: QuadTree) -> None:
         pygame.draw.rect(screen, TREE_COLOR, (rect.x, rect.y, rect.width, rect.height), 1)
 
 
+def control_ship(ship: Ship) -> None:
+    """Поворачивает и разгоняет корабль по зажатым стрелкам."""
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        ship.rotate(-1)
+    if keys[pygame.K_RIGHT]:
+        ship.rotate(1)
+    if keys[pygame.K_UP]:
+        ship.thrust()
+
+
 def main() -> None:
     """Спрашивает настройки, открывает окно и крутит главный цикл игры."""
     settings = ask_settings()
@@ -65,6 +76,7 @@ def main() -> None:
     balls = []
     for _ in range(settings.ball_count):
         balls.append(create_random_ball(settings))
+    ship = Ship(pygame.Vector2(settings.width / 2, settings.height / 2))
 
     show_tree = True
     running = True
@@ -74,6 +86,8 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_t:
                 show_tree = not show_tree
+        control_ship(ship)
+        ship.move(settings.width, settings.height)
         for ball in balls:
             ball.move()
         tree = build_tree(balls, settings)
@@ -85,6 +99,7 @@ def main() -> None:
             draw_tree(screen, tree)
         for ball in balls:
             ball.draw(screen)
+        ship.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
